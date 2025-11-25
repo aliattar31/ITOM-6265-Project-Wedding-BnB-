@@ -1,0 +1,413 @@
+// Wedding Destination Hotel Finder - Database ERD
+// DBML (Database Markup Language) Format
+// MVP Entity Relationship Diagram v1.0
+
+Project WeddingHotelFinder {
+  database_type: 'MySQL'
+  Note: 'Wedding Destination Hotel Finder Platform - Core MVP Database Schema'
+}
+
+// ============================================================
+// USER MANAGEMENT ENTITIES
+// ============================================================
+
+Table UserRoles {
+  role_id int [pk, increment, note: 'Primary Key']
+  role_name varchar(100) [unique, not null, note: 'Unique role name']
+  description text [note: 'Role description and permissions']
+  is_active boolean [default: true, note: 'Active status']
+
+  indexes {
+    role_name
+  }
+}
+
+Table Users {
+  user_id int [pk, increment, note: 'Primary Key']
+  email varchar(255) [unique, not null, note: 'User email address']
+  password_hash varchar(255) [not null, note: 'Hashed password']
+  first_name varchar(100) [note: 'First name']
+  last_name varchar(100) [note: 'Last name']
+  phone_number varchar(20) [note: 'Phone number']
+  user_role_id int [ref: > UserRoles.role_id, not null, note: 'Reference to role']
+  account_status enum('active', 'suspended', 'deleted') [note: 'Account status']
+  profile_picture_url varchar(255) [note: 'Profile picture URL']
+  created_at timestamp [note: 'Account creation timestamp']
+  updated_at timestamp [note: 'Last update timestamp']
+  last_login timestamp [note: 'Last login timestamp']
+
+  indexes {
+    email
+    user_role_id
+    account_status
+  }
+}
+
+Table UserProfiles {
+  profile_id int [pk, increment, note: 'Primary Key']
+  user_id int [unique, not null, ref: - Users.user_id, note: 'One-to-One relationship with Users']
+  preferred_location varchar(255) [note: 'Preferred wedding location']
+  preferred_budget_min decimal(10,2) [note: 'Minimum budget preference']
+  preferred_budget_max decimal(10,2) [note: 'Maximum budget preference']
+  preferred_amenities text [note: 'JSON array of preferred amenities']
+  bio_company_description text [note: 'Bio or company description']
+  company_name varchar(255) [note: 'Company name for planners/hotels']
+  years_in_business int [note: 'Years in business']
+  website varchar(255) [note: 'Website URL']
+  social_media_links text [note: 'JSON object of social links']
+  profile_verified boolean [default: false, note: 'Profile verification status']
+  created_at timestamp [note: 'Profile creation timestamp']
+  updated_at timestamp [note: 'Last update timestamp']
+
+  indexes {
+    user_id
+  }
+}
+
+// ============================================================
+// LOCATION & REFERENCE ENTITIES
+// ============================================================
+
+Table Locations {
+  location_id int [pk, increment, note: 'Primary Key']
+  city varchar(100) [not null, note: 'City name']
+  state char(2) [not null, note: 'State code (e.g., CA, NY)']
+  country varchar(100) [default: 'USA', note: 'Country name']
+  region varchar(100) [note: 'Region (e.g., Caribbean, Hawaii)']
+  latitude decimal(10,8) [note: 'Latitude coordinate']
+  longitude decimal(11,8) [note: 'Longitude coordinate']
+  popularity_score int [note: 'Popularity score based on searches/bookings']
+  total_hotels int [note: 'Total hotels in this location']
+  is_featured boolean [default: false, note: 'Is location featured']
+
+  indexes {
+    city
+    state
+    country
+  }
+}
+
+Table HotelCategories {
+  category_id int [pk, increment, note: 'Primary Key']
+  category_name varchar(100) [unique, not null, note: 'Category name']
+  description text [note: 'Category description']
+  icon_url varchar(255) [note: 'Category icon URL']
+  is_active boolean [default: true, note: 'Active status']
+
+  indexes {
+    category_name
+  }
+}
+
+Table RoomTypes {
+  room_type_id int [pk, increment, note: 'Primary Key']
+  room_type_name varchar(100) [unique, not null, note: 'Room type name']
+  description text [note: 'Room type description']
+  typical_capacity int [note: 'Typical guest capacity']
+  is_active boolean [default: true, note: 'Active status']
+
+  indexes {
+    room_type_name
+  }
+}
+
+Table Amenities {
+  amenity_id int [pk, increment, note: 'Primary Key']
+  amenity_name varchar(100) [unique, not null, note: 'Amenity name']
+  category enum('room', 'facility', 'service', 'wedding-specific') [note: 'Amenity category']
+  description text [note: 'Amenity description']
+  icon_url varchar(255) [note: 'Amenity icon URL']
+  is_active boolean [default: true, note: 'Active status']
+
+  indexes {
+    amenity_name
+    category
+  }
+}
+
+Table PricingTiers {
+  pricing_tier_id int [pk, increment, note: 'Primary Key']
+  tier_name varchar(100) [unique, not null, note: 'Pricing tier name']
+  tier_description text [note: 'Tier description']
+  season_start_date date [note: 'Season start date']
+  season_end_date date [note: 'Season end date']
+  price_multiplier decimal(5,2) [note: 'Price multiplier (1.0 = base)']
+  is_active boolean [default: true, note: 'Active status']
+
+  indexes {
+    tier_name
+  }
+}
+
+// ============================================================
+// HOTEL & ROOM ENTITIES
+// ============================================================
+
+Table Hotels {
+  hotel_id int [pk, increment, note: 'Primary Key']
+  name varchar(255) [not null, note: 'Hotel name']
+  description text [note: 'Hotel description']
+  wedding_highlights text [note: 'Wedding-specific highlights']
+  address varchar(255) [note: 'Hotel address']
+  city varchar(100) [note: 'City']
+  state char(2) [note: 'State code']
+  zip_code varchar(10) [note: 'ZIP code']
+  country varchar(100) [default: 'USA', note: 'Country']
+  phone varchar(20) [note: 'Contact phone']
+  email varchar(255) [note: 'Contact email']
+  website varchar(255) [note: 'Hotel website']
+  latitude decimal(10,8) [note: 'Latitude']
+  longitude decimal(11,8) [note: 'Longitude']
+  manager_user_id int [ref: > Users.user_id, note: 'Hotel manager reference']
+  overall_rating decimal(3,2) [default: 0.00, note: 'Average rating (0-5)']
+  total_reviews int [default: 0, note: 'Total review count']
+  category_id int [ref: > HotelCategories.category_id, note: 'Hotel category']
+  location_id int [ref: > Locations.location_id, note: 'Hotel location']
+  created_at timestamp [note: 'Creation timestamp']
+  updated_at timestamp [note: 'Last update timestamp']
+  is_active boolean [default: true, note: 'Active status']
+  verification_status enum('pending', 'verified', 'suspended') [note: 'Verification status']
+
+  indexes {
+    name
+    location_id
+    category_id
+    manager_user_id
+    overall_rating
+  }
+}
+
+Table HotelPolicies {
+  policy_id int [pk, increment, note: 'Primary Key']
+  hotel_id int [unique, not null, ref: - Hotels.hotel_id, note: 'One-to-One relationship with Hotels']
+  cancellation_policy text [note: 'Cancellation policy details']
+  cancellation_deadline int [note: 'Cancellation deadline in days']
+  group_booking_policy text [note: 'Group booking policy']
+  minimum_group_size int [note: 'Minimum group size']
+  group_discount_percentage decimal(5,2) [note: 'Group discount percentage']
+  check_in_time time [note: 'Standard check-in time']
+  check_out_time time [note: 'Standard check-out time']
+  pet_policy text [note: 'Pet policy']
+  accessibility_policy text [note: 'Accessibility policy']
+  wedding_service_policy text [note: 'Wedding service policy']
+  updated_at timestamp [note: 'Last update timestamp']
+
+  indexes {
+    hotel_id
+  }
+}
+
+Table Rooms {
+  room_id int [pk, increment, note: 'Primary Key']
+  hotel_id int [not null, ref: > Hotels.hotel_id, note: 'Reference to hotel']
+  room_type_id int [not null, ref: > RoomTypes.room_type_id, note: 'Reference to room type']
+  room_number varchar(10) [note: 'Room number/identifier']
+  capacity_max_guests int [note: 'Maximum guest capacity']
+  base_price_per_night decimal(10,2) [note: 'Base price per night']
+  base_price_per_weekend decimal(10,2) [note: 'Base price for weekend']
+  description text [note: 'Room description']
+  featured_image_url varchar(255) [note: 'Featured image URL']
+  total_rooms_available int [note: 'Total available rooms of this type']
+  is_pet_friendly boolean [note: 'Pet-friendly status']
+  is_accessible boolean [note: 'Accessibility status']
+  created_at timestamp [note: 'Creation timestamp']
+  updated_at timestamp [note: 'Last update timestamp']
+  is_active boolean [default: true, note: 'Active status']
+
+  indexes {
+    hotel_id
+    room_type_id
+  }
+}
+
+Table RoomAmenities {
+  room_amenity_id int [pk, increment, note: 'Primary Key']
+  room_id int [not null, ref: > Rooms.room_id, note: 'Reference to room']
+  amenity_id int [not null, ref: > Amenities.amenity_id, note: 'Reference to amenity']
+  is_available boolean [default: true, note: 'Amenity availability']
+  added_at timestamp [note: 'Addition timestamp']
+
+  indexes {
+    room_id
+    amenity_id
+  }
+}
+
+Table Availability {
+  availability_id int [pk, increment, note: 'Primary Key']
+  room_id int [not null, ref: > Rooms.room_id, note: 'Reference to room']
+  date date [not null, note: 'Specific date']
+  available_count int [not null, note: 'Available room count']
+  booked_count int [default: 0, note: 'Booked room count']
+  price_per_night decimal(10,2) [note: 'Price per night for this date']
+  pricing_tier_id int [ref: > PricingTiers.pricing_tier_id, note: 'Reference to pricing tier']
+  is_blocked boolean [default: false, note: 'Is date blocked (maintenance/event)']
+  last_updated timestamp [note: 'Last update timestamp']
+  updated_by_user_id int [ref: > Users.user_id, note: 'User who updated']
+
+  indexes {
+    room_id
+    date
+    pricing_tier_id
+  }
+}
+
+// ============================================================
+// BOOKING ENTITIES
+// ============================================================
+
+Table Bookings {
+  booking_id int [pk, increment, note: 'Primary Key']
+  booking_number varchar(20) [unique, not null, note: 'Unique booking reference']
+  user_id int [not null, ref: > Users.user_id, note: 'Reference to user']
+  hotel_id int [not null, ref: > Hotels.hotel_id, note: 'Reference to hotel']
+  check_in_date date [not null, note: 'Check-in date']
+  check_out_date date [not null, note: 'Check-out date']
+  total_guests int [not null, note: 'Total number of guests']
+  wedding_date date [note: 'Wedding date being planned for']
+  special_requests text [note: 'Special requests from user']
+  base_cost decimal(12,2) [note: 'Base accommodation cost']
+  tax_amount decimal(10,2) [note: 'Tax amount']
+  service_fees decimal(10,2) [note: 'Service fees']
+  discount_amount decimal(10,2) [default: 0, note: 'Discount applied']
+  total_cost decimal(12,2) [note: 'Total booking cost']
+  booking_status enum('pending', 'confirmed', 'cancelled', 'completed') [note: 'Booking status']
+  payment_status enum('pending', 'deposit_received', 'completed', 'refunded', 'disputed') [note: 'Payment status']
+  booking_type enum('individual', 'group') [note: 'Booking type']
+  group_size int [note: 'Group size if group booking']
+  created_at timestamp [note: 'Booking creation timestamp']
+  updated_at timestamp [note: 'Last update timestamp']
+  cancelled_at timestamp [note: 'Cancellation timestamp if cancelled']
+  cancellation_reason text [note: 'Cancellation reason if applicable']
+
+  indexes {
+    booking_number
+    user_id
+    hotel_id
+    booking_status
+    payment_status
+    created_at
+  }
+}
+
+Table BookingRooms {
+  booking_room_id int [pk, increment, note: 'Primary Key']
+  booking_id int [not null, ref: > Bookings.booking_id, note: 'Reference to booking']
+  room_id int [not null, ref: > Rooms.room_id, note: 'Reference to room']
+  quantity int [not null, note: 'Number of rooms booked']
+  price_per_night decimal(10,2) [note: 'Price per night for this room']
+  total_nights int [note: 'Total number of nights']
+  subtotal_price decimal(12,2) [note: 'Subtotal for this room entry']
+
+  indexes {
+    booking_id
+    room_id
+  }
+}
+
+// ============================================================
+// REVIEW & RATING ENTITIES
+// ============================================================
+
+Table Reviews {
+  review_id int [pk, increment, note: 'Primary Key']
+  hotel_id int [not null, ref: > Hotels.hotel_id, note: 'Reference to hotel']
+  user_id int [not null, ref: > Users.user_id, note: 'Reference to reviewer']
+  booking_id int [ref: > Bookings.booking_id, note: 'Reference to booking (proof of stay)']
+  overall_rating int [not null, note: 'Overall rating (1-5)']
+  review_title varchar(200) [note: 'Review title']
+  review_text text [note: 'Review text content']
+  verified_booker boolean [default: false, note: 'Verified booker badge']
+  helpful_count int [default: 0, note: 'Helpful votes count']
+  unhelpful_count int [default: 0, note: 'Unhelpful votes count']
+  moderation_status enum('pending', 'approved', 'rejected') [note: 'Review moderation status']
+  is_wedding_review boolean [default: false, note: 'Is wedding-specific review']
+  created_at timestamp [note: 'Review creation timestamp']
+  updated_at timestamp [note: 'Last update timestamp']
+  hotel_response text [note: 'Hotel response to review']
+  hotel_response_date timestamp [note: 'Response timestamp']
+
+  indexes {
+    hotel_id
+    user_id
+    overall_rating
+    moderation_status
+    created_at
+  }
+}
+
+Table ReviewRatings {
+  review_rating_id int [pk, increment, note: 'Primary Key']
+  review_id int [not null, ref: > Reviews.review_id, note: 'Reference to review']
+  rating_dimension enum('amenities', 'service', 'value', 'wedding_coordination', 'cleanliness', 'location') [note: 'Rating dimension']
+  rating_score int [not null, note: 'Rating score (1-5)']
+
+  indexes {
+    review_id
+    rating_dimension
+  }
+}
+
+// ============================================================
+// SEARCH & ANALYTICS ENTITIES
+// ============================================================
+
+Table SearchQueries {
+  search_query_id int [pk, increment, note: 'Primary Key']
+  user_id int [ref: > Users.user_id, note: 'Reference to user (optional)']
+  search_location varchar(255) [note: 'Search location string']
+  location_id int [ref: > Locations.location_id, note: 'Reference to location']
+  check_in_date date [note: 'Desired check-in date']
+  check_out_date date [note: 'Desired check-out date']
+  min_guests int [note: 'Minimum guest count']
+  max_guests int [note: 'Maximum guest count']
+  min_budget decimal(10,2) [note: 'Minimum budget']
+  max_budget decimal(10,2) [note: 'Maximum budget']
+  amenities_filter text [note: 'JSON array of amenity filters']
+  results_count int [note: 'Number of results returned']
+  clicked_hotel_id int [ref: > Hotels.hotel_id, note: 'Hotel clicked (if any)']
+  lead_to_booking boolean [default: false, note: 'Did search lead to booking']
+  created_at timestamp [note: 'Search timestamp']
+
+  indexes {
+    user_id
+    location_id
+    created_at
+  }
+}
+
+// ============================================================
+// RELATIONSHIP SUMMARY
+// ============================================================
+
+// One-to-One Relationships
+// Users <-> UserProfiles (1:1)
+// Hotels <-> HotelPolicies (1:1)
+
+// One-to-Many Relationships
+// UserRoles -> Users (1:Many)
+// Users -> UserProfiles (1:1)
+// Users -> Bookings (1:Many)
+// Users -> Reviews (1:Many)
+// Users -> SearchQueries (1:Many)
+// Users -> Availability (1:Many as updater)
+// Locations -> Hotels (1:Many)
+// Locations -> SearchQueries (1:Many)
+// HotelCategories -> Hotels (1:Many)
+// RoomTypes -> Rooms (1:Many)
+// Hotels -> Rooms (1:Many)
+// Hotels -> Reviews (1:Many)
+// Hotels -> Bookings (1:Many)
+// Hotels -> HotelPolicies (1:1)
+// Rooms -> Availability (1:Many)
+// Rooms -> RoomAmenities (1:Many)
+// Rooms -> BookingRooms (1:Many)
+// Amenities -> RoomAmenities (1:Many)
+// PricingTiers -> Availability (1:Many)
+// Bookings -> BookingRooms (1:Many)
+// Bookings -> Reviews (1:Many)
+// Reviews -> ReviewRatings (1:Many)
+
+// Many-to-Many Relationships (via Junction Tables)
+// Rooms <-> Amenities (via RoomAmenities) (Many:Many)
+// Bookings <-> Rooms (via BookingRooms) (Many:Many)
