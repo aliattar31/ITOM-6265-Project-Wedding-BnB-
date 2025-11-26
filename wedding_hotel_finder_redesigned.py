@@ -635,7 +635,7 @@ elif st.session_state.page == "Search":
                 budget = st.slider(
                     "Maximum Price per Night",
                     min_value=100,
-                    max_value=1000,
+                    max_value=10000,
                     value=st.session_state.search_budget,
                     step=50,
                     format="$%d"
