@@ -1,14 +1,14 @@
 -- Wedding Destination Hotel Finder - Database Schema
--- SQLite DDL (Data Definition Language) Script
+-- MySQL DDL (Data Definition Language) Script
 -- MVP Database Schema v1.0
 -- Generated from DBML ERD v1.0
 
 -- ============================================================
--- PRAGMA SETTINGS FOR SQLite
+-- MySQL CONFIGURATION
 -- ============================================================
 
-PRAGMA foreign_keys = ON;
-PRAGMA journal_mode = WAL;
+SET FOREIGN_KEY_CHECKS = 1;
+SET SQL_MODE = 'STRICT_TRANS_TABLES';
 
 -- ============================================================
 -- USER MANAGEMENT TABLES

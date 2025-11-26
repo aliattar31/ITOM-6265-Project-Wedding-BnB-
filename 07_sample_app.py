@@ -7,6 +7,8 @@ Version 2.0 - Enhanced with Auto-Navigation & 100+ US Hotels
 import streamlit as st
 from datetime import datetime, timedelta
 import pandas as pd
+import mysql.connector
+from mysql.connector import Error
 
 # ============================================================
 # PAGE CONFIGURATION
@@ -20,7 +22,137 @@ st.set_page_config(
 )
 
 # ============================================================
-# SAMPLE DATA - 100+ US HOTELS
+# DATABASE CONNECTION CONFIGURATION
+# ============================================================
+
+@st.cache_resource
+def get_db_connection():
+    """Establish and cache MySQL database connection"""
+    try:
+        connection = mysql.connector.connect(
+            host=st.secrets.get("mysql_host", "localhost"),
+            user=st.secrets.get("mysql_user", "root"),
+            password=st.secrets.get("mysql_password", ""),
+            database=st.secrets.get("mysql_database", "wedding_bnb_db"),
+            port=st.secrets.get("mysql_port", 3306)
+        )
+        return connection
+    except Error as e:
+        st.error(f"Error connecting to MySQL database: {e}")
+        return None
+
+@st.cache_data(ttl=3600)
+def fetch_hotels_from_db(location_filter=None, budget_filter=None):
+    """
+    Fetch hotels from MySQL database with optional filtering
+    
+    Args:
+        location_filter: Filter by city or state (partial match)
+        budget_filter: Filter by max price per night
+    
+    Returns:
+        List of hotel dictionaries or empty list if connection fails
+    """
+    connection = get_db_connection()
+    if connection is None:
+        return []
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        
+        # Query using actual database structure:
+        # HOTEL table - main hotel info
+        # ROOM table - room pricing (BasePrice)
+        # HOTELAMENITIES table - hotel amenities junction
+        # AMENITIES table - amenity names
+        query = """
+        SELECT 
+            h.HotelID,
+            h.HotelName as name,
+            h.City,
+            h.State,
+            CONCAT(h.City, ', ', h.State) as location,
+            h.AverageRating as rating,
+            h.PhoneNumber as phone,
+            h.Email as email,
+            h.Website as website,
+            h.StreetAddress as address,
+            COALESCE(AVG(r.BasePrice), 300) as price_per_night,
+            COALESCE(COUNT(DISTINCT r.RoomID), 0) as rooms,
+            GROUP_CONCAT(DISTINCT a.AmenityName SEPARATOR ', ') as amenities,
+            h.StarRating
+        FROM HOTEL h
+        LEFT JOIN ROOM r ON h.HotelID = r.HotelID AND r.RoomStatus = 'Available'
+        LEFT JOIN HOTELAMENITIES ha ON h.HotelID = ha.HotelID
+        LEFT JOIN AMENITIES a ON ha.AmenityID = a.AmenityID
+        WHERE 1=1
+        """
+        
+        params = []
+        
+        # Add location filter
+        if location_filter and location_filter.strip():
+            location_filter_lower = location_filter.lower().strip()
+            query += " AND (LOWER(h.City) LIKE %s OR LOWER(h.State) = %s)"
+            params.extend([f"%{location_filter_lower}%", location_filter_lower])
+        
+        # Group by hotel
+        query += """ GROUP BY h.HotelID, h.HotelName, h.City, h.State, h.PhoneNumber, h.Email, h.Website, h.StreetAddress, h.AverageRating, h.StarRating"""
+        
+        # Add budget filter to HAVING clause
+        if budget_filter:
+            query += " HAVING COALESCE(AVG(r.BasePrice), 300) <= %s"
+            params.append(budget_filter)
+        
+        query += " ORDER BY h.AverageRating DESC LIMIT 100"
+        
+        cursor.execute(query, params)
+        results = cursor.fetchall()
+        
+        # Convert results to list of dictionaries with expected format
+        hotels = []
+        for row in results:
+            hotels.append({
+                "hotel_id": row.get("HotelID"),
+                "name": row.get("name", ""),
+                "location": row.get("location", ""),
+                "state": row.get("State", ""),
+                "rating": float(row.get("rating", 4.5)) if row.get("rating") else 4.5,
+                "price_per_night": float(row.get("price_per_night", 300)) if row.get("price_per_night") else 300,
+                "rooms": int(row.get("rooms", 0)) if row.get("rooms") else 0,
+                "amenities": row.get("amenities", "Amenities not listed"),
+                "category": f"{row.get('StarRating', 4)}-star Hotel" if row.get("StarRating") else "Hotel",
+                "phone": row.get("phone", ""),
+                "email": row.get("email", ""),
+                "website": row.get("website", "")
+            })
+        
+        cursor.close()
+        return hotels
+        
+    except Error as e:
+        st.error(f"Error fetching hotels from database: {e}")
+        return []
+    finally:
+        if connection.is_connected():
+            connection.close()
+                "phone": row.get("phone", ""),
+                "email": row.get("email", ""),
+                "website": row.get("website", "")
+            })
+        
+        cursor.close()
+        return hotels
+        
+    except Error as e:
+        st.error(f"Error fetching hotels from database: {e}")
+        return []
+    finally:
+        if connection.is_connected():
+            connection.close()
+
+# ============================================================
+# FALLBACK SAMPLE DATA - 100+ US HOTELS
 # ============================================================
 
 SAMPLE_HOTELS = [
@@ -374,19 +506,26 @@ elif st.session_state.page == "Hotel Search":
             if search_start_date >= search_end_date:
                 st.error("⚠️ Check-out date must be after check-in date.")
             else:
-                # Filter hotels by budget and location (USA only)
-                location_lower = search_location.lower()
-                results = [
+                # Fetch hotels from MySQL database
+                with st.spinner("🔍 Searching database for matching hotels..."):
+                    db_results = fetch_hotels_from_db(
+                        location_filter=search_location if search_location else None,
+                        budget_filter=search_budget
+                    )
+                
+                # Fallback to sample data if database fetch fails
+                results = db_results if db_results else [
                     h for h in SAMPLE_HOTELS 
                     if h["price_per_night"] <= search_budget and 
-                    (location_lower in h["location"].lower() or 
-                     location_lower in h["state"].lower() or
-                     h["state"].lower() == location_lower)
-                ]
+                    (search_location.lower() in h["location"].lower() or 
+                     search_location.lower() in h["state"].lower() or
+                     h["state"].lower() == search_location.lower())
+                ] if search_location else []
 
                 if results:
                     st.session_state.search_results = results
-                    st.success(f"✓ Found {len(results)} hotels matching your criteria!")
+                    data_source = "database" if db_results else "sample"
+                    st.success(f"✓ Found {len(results)} hotels matching your criteria! (Source: {data_source})")
                     st.write("---")
                     st.subheader("Search Results")
 
@@ -394,16 +533,17 @@ elif st.session_state.page == "Hotel Search":
                         col1, col2, col3 = st.columns([2.5, 0.5, 1])
                         with col1:
                             st.write(f"**{i}. {hotel['name']}**")
-                            st.write(f"📍 {hotel['location']} | **${hotel['price_per_night']}/night**")
+                            st.write(f"📍 {hotel['location']} | **${hotel['price_per_night']:.2f}/night**")
                             st.write(f"⭐ Rating: {hotel['rating']}/5 | 🏨 {hotel['rooms']} rooms")
-                            st.write(f"✨ {hotel['amenities']}")
+                            if hotel.get('amenities'):
+                                st.write(f"✨ {hotel['amenities'][:100]}...")
                         with col3:
                             if st.button(f"Select →", key=f"select_{i}", use_container_width=True):
                                 st.session_state.selected_hotel = hotel
                                 st.session_state.page = "Comparison"
                                 st.rerun()
                 else:
-                    st.warning("❌ No hotels found in USA matching your criteria. Try adjusting your budget or location!")
+                    st.warning("❌ No hotels found matching your criteria. Try adjusting your budget or location!")
 
 # ============================================================
 # PAGE 3: HOTEL COMPARISON
