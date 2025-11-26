@@ -1,7 +1,7 @@
 """
 Wedding Destination Hotel Finder - Demo Dashboard
 Streamlit Application (Single File)
-Version 2.0 - Enhanced with Auto-Navigation & 100+ US Hotels
+Version 2.1 - Fixed and Enhanced
 """
 
 import streamlit as st
@@ -33,7 +33,7 @@ def get_db_connection():
             host=st.secrets.get("mysql_host", "localhost"),
             user=st.secrets.get("mysql_user", "root"),
             password=st.secrets.get("mysql_password", ""),
-            database=st.secrets.get("mysql_database", "wedding_bnb_db"),
+            database=st.secrets.get("mysql_database", "5033_ali"),
             port=st.secrets.get("mysql_port", 3306)
         )
         return connection
@@ -60,11 +60,7 @@ def fetch_hotels_from_db(location_filter=None, budget_filter=None):
     try:
         cursor = connection.cursor(dictionary=True)
         
-        # Query using actual database structure:
-        # HOTEL table - main hotel info
-        # ROOM table - room pricing (BasePrice)
-        # HOTELAMENITIES table - hotel amenities junction
-        # AMENITIES table - amenity names
+        # Query using actual database structure
         query = """
         SELECT 
             h.HotelID,
@@ -97,7 +93,9 @@ def fetch_hotels_from_db(location_filter=None, budget_filter=None):
             params.extend([f"%{location_filter_lower}%", location_filter_lower])
         
         # Group by hotel
-        query += """ GROUP BY h.HotelID, h.HotelName, h.City, h.State, h.PhoneNumber, h.Email, h.Website, h.StreetAddress, h.AverageRating, h.StarRating"""
+        query += """ GROUP BY h.HotelID, h.HotelName, h.City, h.State, 
+                     h.PhoneNumber, h.Email, h.Website, h.StreetAddress, 
+                     h.AverageRating, h.StarRating"""
         
         # Add budget filter to HAVING clause
         if budget_filter:
@@ -109,7 +107,7 @@ def fetch_hotels_from_db(location_filter=None, budget_filter=None):
         cursor.execute(query, params)
         results = cursor.fetchall()
         
-        # Convert results to list of dictionaries with expected format
+        # Convert results to list of dictionaries
         hotels = []
         for row in results:
             hotels.append({
@@ -134,201 +132,26 @@ def fetch_hotels_from_db(location_filter=None, budget_filter=None):
         st.error(f"Error fetching hotels from database: {e}")
         return []
     finally:
-        if connection.is_connected():
-            connection.close()
-                "phone": row.get("phone", ""),
-                "email": row.get("email", ""),
-                "website": row.get("website", "")
-            })
-        
-        cursor.close()
-        return hotels
-        
-    except Error as e:
-        st.error(f"Error fetching hotels from database: {e}")
-        return []
-    finally:
-        if connection.is_connected():
+        if connection and connection.is_connected():
             connection.close()
 
 # ============================================================
-# FALLBACK SAMPLE DATA - 100+ US HOTELS
+# FALLBACK SAMPLE DATA
 # ============================================================
 
 SAMPLE_HOTELS = [
     # Hawaii - Maui (10)
     {"name": "Maui Grand Resort", "location": "Maui, HI", "state": "HI", "rating": 4.8, "price_per_night": 350, "rooms": 150, "amenities": "Ceremony Space, Catering, Coordination", "category": "Beachfront Resort"},
     {"name": "Wailea Beach Resort", "location": "Maui, HI", "state": "HI", "rating": 4.7, "price_per_night": 320, "rooms": 120, "amenities": "Beach Access, Pool, Spa", "category": "Beachfront Resort"},
-    {"name": "Maui Sunset Villas", "location": "Maui, HI", "state": "HI", "rating": 4.6, "price_per_night": 280, "rooms": 95, "amenities": "Ocean View, WiFi, Restaurant", "category": "Boutique Hotel"},
-    {"name": "Kapalua Bay Resort", "location": "Maui, HI", "state": "HI", "rating": 4.9, "price_per_night": 420, "rooms": 110, "amenities": "Private Beach, Golf, Concierge", "category": "Golf Resort"},
-    {"name": "Lahaina Shores Hotel", "location": "Maui, HI", "state": "HI", "rating": 4.5, "price_per_night": 250, "rooms": 200, "amenities": "Beachfront, WiFi, Pool", "category": "Beachfront Resort"},
     {"name": "The Ritz-Carlton Maui", "location": "Maui, HI", "state": "HI", "rating": 4.9, "price_per_night": 580, "rooms": 80, "amenities": "Ultra-Luxury, Spa, Beach Ceremony", "category": "Luxury Resort"},
-    {"name": "Hyatt Regency Maui", "location": "Maui, HI", "state": "HI", "rating": 4.7, "price_per_night": 380, "rooms": 160, "amenities": "Beach, Pool, Entertainment", "category": "Beachfront Resort"},
-    {"name": "Fairmont Kea Lani", "location": "Maui, HI", "state": "HI", "rating": 4.8, "price_per_night": 500, "rooms": 140, "amenities": "All-Suite, Beach, Spa", "category": "Luxury Resort"},
-    {"name": "Sheraton Maui Resort", "location": "Maui, HI", "state": "HI", "rating": 4.6, "price_per_night": 340, "rooms": 170, "amenities": "Beachfront, Pool, Volcano View", "category": "Beachfront Resort"},
-    {"name": "Marriott Maui Ocean Club", "location": "Maui, HI", "state": "HI", "rating": 4.5, "price_per_night": 300, "rooms": 190, "amenities": "Beach Access, WiFi, Restaurant", "category": "Beachfront Resort"},
     
-    # Hawaii - Honolulu/Oahu (10)
-    {"name": "Royal Hawaiian Honolulu", "location": "Honolulu, HI", "state": "HI", "rating": 4.9, "price_per_night": 480, "rooms": 180, "amenities": "Waikiki Beach, Luxury, Fine Dining", "category": "Urban Luxury"},
-    {"name": "Hilton Hawaiian Village", "location": "Honolulu, HI", "state": "HI", "rating": 4.7, "price_per_night": 350, "rooms": 300, "amenities": "Beach, Pool, Entertainment", "category": "Beachfront Resort"},
-    {"name": "Moana Surfrider Hotel", "location": "Honolulu, HI", "state": "HI", "rating": 4.8, "price_per_night": 410, "rooms": 130, "amenities": "Historic, Beach, Restaurant", "category": "Historic Inn"},
-    {"name": "Waikiki Beach Marriott", "location": "Honolulu, HI", "state": "HI", "rating": 4.6, "price_per_night": 380, "rooms": 170, "amenities": "Beach View, Pool, Gym", "category": "Beachfront Resort"},
-    {"name": "Outrigger Waikiki Beach", "location": "Honolulu, HI", "state": "HI", "rating": 4.5, "price_per_night": 290, "rooms": 160, "amenities": "Beach, WiFi, Restaurant", "category": "Beachfront Resort"},
-    {"name": "The Halekulani", "location": "Honolulu, HI", "state": "HI", "rating": 4.9, "price_per_night": 650, "rooms": 50, "amenities": "Ultra-Luxury, Private Beach", "category": "Luxury Resort"},
-    {"name": "Sheraton Waikiki", "location": "Honolulu, HI", "state": "HI", "rating": 4.6, "price_per_night": 320, "rooms": 250, "amenities": "Beachfront, Pool, Entertainment", "category": "Beachfront Resort"},
-    {"name": "Grand Wailea Maui", "location": "Wailea, HI", "state": "HI", "rating": 4.7, "price_per_night": 420, "rooms": 200, "amenities": "All-Inclusive, Pool, Spa", "category": "Beachfront Resort"},
-    {"name": "Kahala Hotel & Resort", "location": "Honolulu, HI", "state": "HI", "rating": 4.8, "price_per_night": 550, "rooms": 100, "amenities": "Private Beach, Dolphins, Luxury", "category": "Luxury Resort"},
-    {"name": "Waikiki Beachcomber by Outrigger", "location": "Honolulu, HI", "state": "HI", "rating": 4.4, "price_per_night": 250, "rooms": 180, "amenities": "Budget Beachfront, Pool", "category": "Beachfront Resort"},
-    
-    # Florida - Miami (8)
+    # Florida - Miami (5)
     {"name": "Miami Luxury Downtown", "location": "Miami, FL", "state": "FL", "rating": 4.3, "price_per_night": 400, "rooms": 180, "amenities": "Urban, Rooftop Events, Restaurant", "category": "Urban Luxury"},
-    {"name": "Mandarin Oriental Miami", "location": "Miami, FL", "state": "FL", "rating": 4.8, "price_per_night": 550, "rooms": 130, "amenities": "Luxury, Spa, Fine Dining", "category": "Urban Luxury"},
     {"name": "Fontainebleau Miami Beach", "location": "Miami, FL", "state": "FL", "rating": 4.6, "price_per_night": 420, "rooms": 220, "amenities": "Beach, Pool, Entertainment", "category": "Beachfront Resort"},
-    {"name": "The Setai Miami Beach", "location": "Miami, FL", "state": "FL", "rating": 4.9, "price_per_night": 680, "rooms": 105, "amenities": "Ultra-Luxury, Spa, Private Beach", "category": "Urban Luxury"},
-    {"name": "Betsy Hotel Miami Beach", "location": "Miami, FL", "state": "FL", "rating": 4.7, "price_per_night": 380, "rooms": 50, "amenities": "Boutique, Art Gallery, Restaurant", "category": "Boutique Hotel"},
-    {"name": "Four Seasons Miami", "location": "Miami, FL", "state": "FL", "rating": 4.9, "price_per_night": 620, "rooms": 150, "amenities": "Luxury, Bay View, Spa", "category": "Urban Luxury"},
-    {"name": "Loews Miami Beach Hotel", "location": "Miami Beach, FL", "state": "FL", "rating": 4.5, "price_per_night": 320, "rooms": 200, "amenities": "Beach, Pool, Family Friendly", "category": "Beachfront Resort"},
-    {"name": "Edition Miami Beach", "location": "Miami Beach, FL", "state": "FL", "rating": 4.8, "price_per_night": 580, "rooms": 120, "amenities": "Modern Luxury, Beach, Events", "category": "Urban Luxury"},
     
-    # Florida - Key West (6)
-    {"name": "Key West Ocean View", "location": "Key West, FL", "state": "FL", "rating": 4.4, "price_per_night": 450, "rooms": 85, "amenities": "Historic Charm, Sunset Venue, WiFi", "category": "Historic Inn"},
-    {"name": "Marker Waterfront Resort", "location": "Key West, FL", "state": "FL", "rating": 4.6, "price_per_night": 520, "rooms": 95, "amenities": "Waterfront, Pool, Restaurant", "category": "Beachfront Resort"},
-    {"name": "Tropic Cinema Resort", "location": "Key West, FL", "state": "FL", "rating": 4.5, "price_per_night": 380, "rooms": 70, "amenities": "Historic, WiFi, Entertainment", "category": "Historic Inn"},
-    {"name": "Sunset Key Guest Cottages", "location": "Key West, FL", "state": "FL", "rating": 4.8, "price_per_night": 650, "rooms": 40, "amenities": "Private Island, Beach, Exclusive", "category": "Villa Resort"},
-    {"name": "Hyatt Centric Key West", "location": "Key West, FL", "state": "FL", "rating": 4.6, "price_per_night": 420, "rooms": 80, "amenities": "Modern, Downtown, Beach", "category": "Boutique Hotel"},
-    {"name": "The Marker Waterfront", "location": "Key West, FL", "state": "FL", "rating": 4.7, "price_per_night": 500, "rooms": 90, "amenities": "Luxury, Pool, Dining", "category": "Urban Luxury"},
-    
-    # Florida - Fort Lauderdale & Boca Raton (6)
-    {"name": "The Atlantic Resort", "location": "Fort Lauderdale, FL", "state": "FL", "rating": 4.5, "price_per_night": 340, "rooms": 140, "amenities": "Beach, Pool, Spa", "category": "Beachfront Resort"},
-    {"name": "Boca Beach Club", "location": "Boca Raton, FL", "state": "FL", "rating": 4.7, "price_per_night": 480, "rooms": 115, "amenities": "Luxury Beach, Golf, Spa", "category": "Golf Resort"},
-    {"name": "Ocean Reef Club", "location": "Key Largo, FL", "state": "FL", "rating": 4.6, "price_per_night": 420, "rooms": 100, "amenities": "Private Marina, Golf, Beach", "category": "Golf Resort"},
-    {"name": "Lago Mar Resort", "location": "Fort Lauderdale, FL", "state": "FL", "rating": 4.7, "price_per_night": 500, "rooms": 60, "amenities": "Private Beach, Intimate, Luxury", "category": "Luxury Resort"},
-    {"name": "Riverside Hotel", "location": "Fort Lauderdale, FL", "state": "FL", "rating": 4.5, "price_per_night": 280, "rooms": 180, "amenities": "Waterfront, Historic, Events", "category": "Historic Inn"},
-    {"name": "Pelican Grand Beach Resort", "location": "Fort Lauderdale, FL", "state": "FL", "rating": 4.6, "price_per_night": 380, "rooms": 140, "amenities": "Beach, Pool, Restaurant", "category": "Beachfront Resort"},
-    
-    # California - San Diego (8)
-    {"name": "Park Hyatt Aviara", "location": "San Diego, CA", "state": "CA", "rating": 4.8, "price_per_night": 520, "rooms": 175, "amenities": "Golf, Spa, Beach Access", "category": "Golf Resort"},
-    {"name": "Fairmont Grand Del Mar", "location": "San Diego, CA", "state": "CA", "rating": 4.9, "price_per_night": 650, "rooms": 150, "amenities": "Luxury, Golf, Spa", "category": "Golf Resort"},
-    {"name": "Hotel del Coronado", "location": "San Diego, CA", "state": "CA", "rating": 4.7, "price_per_night": 480, "rooms": 200, "amenities": "Historic Beach, Luxury, Events", "category": "Historic Inn"},
-    {"name": "Paradise Point Resort", "location": "San Diego, CA", "state": "CA", "rating": 4.5, "price_per_night": 380, "rooms": 160, "amenities": "Waterfront, Beach, Pool", "category": "Beachfront Resort"},
-    {"name": "Scripps Coastal Lodge", "location": "San Diego, CA", "state": "CA", "rating": 4.6, "price_per_night": 420, "rooms": 90, "amenities": "Ocean View, Spa, Restaurant", "category": "Boutique Hotel"},
-    {"name": "Four Seasons San Diego", "location": "San Diego, CA", "state": "CA", "rating": 4.9, "price_per_night": 680, "rooms": 120, "amenities": "Ultra-Luxury, Beach, Spa", "category": "Luxury Resort"},
-    {"name": "Omni San Diego Hotel", "location": "San Diego, CA", "state": "CA", "rating": 4.6, "price_per_night": 400, "rooms": 200, "amenities": "Waterfront, Downtown, Pool", "category": "Urban Luxury"},
-    {"name": "Beach Village Resort", "location": "San Diego, CA", "state": "CA", "rating": 4.5, "price_per_night": 320, "rooms": 180, "amenities": "Beach Access, Pool, Family", "category": "Beachfront Resort"},
-    
-    # California - Malibu/Ventura (4)
-    {"name": "Malibu Beach Inn", "location": "Malibu, CA", "state": "CA", "rating": 4.8, "price_per_night": 580, "rooms": 50, "amenities": "Private Beach, Luxury, WiFi", "category": "Boutique Hotel"},
-    {"name": "Surfrider Malibu Resort", "location": "Malibu, CA", "state": "CA", "rating": 4.6, "price_per_night": 450, "rooms": 60, "amenities": "Beach, Surf, Ocean View", "category": "Beachfront Resort"},
-    {"name": "Santa Barbara Biltmore", "location": "Santa Barbara, CA", "state": "CA", "rating": 4.8, "price_per_night": 520, "rooms": 130, "amenities": "Historic, Spa, Beach", "category": "Historic Inn"},
-    {"name": "Rosewood Malibu", "location": "Malibu, CA", "state": "CA", "rating": 4.9, "price_per_night": 750, "rooms": 30, "amenities": "Ultra-Luxury, Private Beach", "category": "Luxury Resort"},
-    
-    # Arizona - Scottsdale (6)
-    {"name": "Scottsdale Desert Resort", "location": "Scottsdale, AZ", "state": "AZ", "rating": 4.2, "price_per_night": 320, "rooms": 120, "amenities": "Desert Ceremony, Golf, Spa", "category": "Golf Resort"},
-    {"name": "Fairmont Scottsdale Princess", "location": "Scottsdale, AZ", "state": "AZ", "rating": 4.8, "price_per_night": 480, "rooms": 180, "amenities": "Championship Golf, Spa, Wedding", "category": "Golf Resort"},
-    {"name": "The Phoenician", "location": "Scottsdale, AZ", "state": "AZ", "rating": 4.9, "price_per_night": 620, "rooms": 200, "amenities": "Luxury, Golf, Spa, Pool", "category": "Golf Resort"},
-    {"name": "Hyatt Regency Scottsdale", "location": "Scottsdale, AZ", "state": "AZ", "rating": 4.5, "price_per_night": 380, "rooms": 160, "amenities": "Desert Resort, Golf, Pool", "category": "Golf Resort"},
-    {"name": "JW Marriott Scottsdale", "location": "Scottsdale, AZ", "state": "AZ", "rating": 4.7, "price_per_night": 420, "rooms": 190, "amenities": "Championship Golf, Spa", "category": "Golf Resort"},
-    {"name": "Four Seasons Scottsdale", "location": "Scottsdale, AZ", "state": "AZ", "rating": 4.9, "price_per_night": 680, "rooms": 100, "amenities": "Luxury, Golf, Spa", "category": "Luxury Resort"},
-    
-    # Colorado - Denver & Mountain (5)
-    {"name": "The Brown Palace", "location": "Denver, CO", "state": "CO", "rating": 4.7, "price_per_night": 410, "rooms": 240, "amenities": "Historic, Downtown, Fine Dining", "category": "Historic Inn"},
-    {"name": "Four Seasons Denver", "location": "Denver, CO", "state": "CO", "rating": 4.8, "price_per_night": 520, "rooms": 180, "amenities": "Luxury, Downtown, Spa", "category": "Urban Luxury"},
-    {"name": "Beaver Creek Lodge", "location": "Beaver Creek, CO", "state": "CO", "rating": 4.8, "price_per_night": 480, "rooms": 150, "amenities": "Mountain, Ski, Wedding", "category": "Mountain Resort"},
-    {"name": "St. Julien Hotel & Spa", "location": "Boulder, CO", "state": "CO", "rating": 4.6, "price_per_night": 380, "rooms": 80, "amenities": "Luxury, Spa, Flatirons View", "category": "Luxury Resort"},
-    {"name": "Hotel Jerome", "location": "Aspen, CO", "state": "CO", "rating": 4.7, "price_per_night": 520, "rooms": 95, "amenities": "Historic Luxury, Mountain", "category": "Historic Inn"},
-    
-    # New York (5)
+    # New York (3)
     {"name": "Plaza Hotel New York", "location": "New York, NY", "state": "NY", "rating": 4.8, "price_per_night": 800, "rooms": 300, "amenities": "Iconic, Luxury, Ballroom", "category": "Urban Luxury"},
     {"name": "The Peninsula New York", "location": "New York, NY", "state": "NY", "rating": 4.9, "price_per_night": 750, "rooms": 150, "amenities": "Luxury, Spa, Fine Dining", "category": "Urban Luxury"},
-    {"name": "Mandarin Oriental New York", "location": "New York, NY", "state": "NY", "rating": 4.9, "price_per_night": 850, "rooms": 190, "amenities": "Luxury, Spa, Event Spaces", "category": "Urban Luxury"},
-    {"name": "St. Regis New York", "location": "New York, NY", "state": "NY", "rating": 4.8, "price_per_night": 820, "rooms": 100, "amenities": "Iconic Luxury, Ballroom", "category": "Urban Luxury"},
-    {"name": "The Pierre New York", "location": "New York, NY", "state": "NY", "rating": 4.7, "price_per_night": 680, "rooms": 190, "amenities": "Historic Luxury, Central Park View", "category": "Historic Inn"},
-    
-    # Massachusetts - Boston (4)
-    {"name": "Boston Harbor Hotel", "location": "Boston, MA", "state": "MA", "rating": 4.8, "price_per_night": 480, "rooms": 230, "amenities": "Waterfront, Historic, Fine Dining", "category": "Urban Luxury"},
-    {"name": "Fairmont Copley Plaza", "location": "Boston, MA", "state": "MA", "rating": 4.7, "price_per_night": 420, "rooms": 300, "amenities": "Historic, Downtown, Luxury", "category": "Historic Inn"},
-    {"name": "The Liberty Hotel", "location": "Boston, MA", "state": "MA", "rating": 4.6, "price_per_night": 380, "rooms": 298, "amenities": "Modern Luxury, Historic Building", "category": "Urban Luxury"},
-    {"name": "Mandarin Oriental Boston", "location": "Boston, MA", "state": "MA", "rating": 4.8, "price_per_night": 550, "rooms": 160, "amenities": "Luxury, Spa, Events", "category": "Urban Luxury"},
-    
-    # South Carolina - Charleston (5)
-    {"name": "Charleston Historic Inn", "location": "Charleston, SC", "state": "SC", "rating": 4.1, "price_per_night": 320, "rooms": 85, "amenities": "Colonial Charm, Historic, Southern", "category": "Historic Inn"},
-    {"name": "The Vendue", "location": "Charleston, SC", "state": "SC", "rating": 4.7, "price_per_night": 450, "rooms": 40, "amenities": "Art Gallery, Boutique, Modern", "category": "Boutique Hotel"},
-    {"name": "Planters Inn", "location": "Charleston, SC", "state": "SC", "rating": 4.6, "price_per_night": 380, "rooms": 60, "amenities": "Historic, Downtown, Courtyard", "category": "Historic Inn"},
-    {"name": "Belmond Charleston Place", "location": "Charleston, SC", "state": "SC", "rating": 4.8, "price_per_night": 520, "rooms": 150, "amenities": "Luxury, Historic, Spa", "category": "Urban Luxury"},
-    {"name": "The Restoration Hotel", "location": "Charleston, SC", "state": "SC", "rating": 4.7, "price_per_night": 420, "rooms": 54, "amenities": "Boutique, Modern, Rooftop", "category": "Boutique Hotel"},
-    
-    # Georgia - Savannah (4)
-    {"name": "Kehoe House", "location": "Savannah, GA", "state": "GA", "rating": 4.6, "price_per_night": 340, "rooms": 50, "amenities": "Historic B&B, Charming, WiFi", "category": "Historic Inn"},
-    {"name": "Thunderbird Inn", "location": "Savannah, GA", "state": "GA", "rating": 4.5, "price_per_night": 290, "rooms": 70, "amenities": "Retro, Trendy, Pool", "category": "Boutique Hotel"},
-    {"name": "Marshall House", "location": "Savannah, GA", "state": "GA", "rating": 4.4, "price_per_night": 280, "rooms": 68, "amenities": "Historic, Haunted, Character", "category": "Historic Inn"},
-    {"name": "Sentient Bean Hotel", "location": "Savannah, GA", "state": "GA", "rating": 4.6, "price_per_night": 360, "rooms": 40, "amenities": "Boutique, Artsy, Downtown", "category": "Boutique Hotel"},
-    
-    # Louisiana - New Orleans (4)
-    {"name": "The Roosevelt New Orleans", "location": "New Orleans, LA", "state": "LA", "rating": 4.7, "price_per_night": 420, "rooms": 210, "amenities": "Historic Luxury, Ballroom, French Quarter", "category": "Historic Inn"},
-    {"name": "Windsor Court Hotel", "location": "New Orleans, LA", "state": "LA", "rating": 4.8, "price_per_night": 500, "rooms": 120, "amenities": "Luxury, Art Collection, Fine Dining", "category": "Urban Luxury"},
-    {"name": "Hotel Monteleone", "location": "New Orleans, LA", "state": "LA", "rating": 4.6, "price_per_night": 380, "rooms": 600, "amenities": "Historic, French Quarter, Rooftop", "category": "Historic Inn"},
-    {"name": "Ritz-Carlton New Orleans", "location": "New Orleans, LA", "state": "LA", "rating": 4.8, "price_per_night": 580, "rooms": 150, "amenities": "Luxury, French Quarter, Spa", "category": "Urban Luxury"},
-    
-    # Texas (6)
-    {"name": "Lake Travis Resort", "location": "Austin, TX", "state": "TX", "rating": 4.5, "price_per_night": 280, "rooms": 150, "amenities": "Lake View, Pool, Restaurant", "category": "Beachfront Resort"},
-    {"name": "Fairmont Austin", "location": "Austin, TX", "state": "TX", "rating": 4.8, "price_per_night": 480, "rooms": 200, "amenities": "Luxury, Spa, Downtown", "category": "Urban Luxury"},
-    {"name": "The Westin Riverwalk", "location": "San Antonio, TX", "state": "TX", "rating": 4.6, "price_per_night": 380, "rooms": 140, "amenities": "River Walk, Luxury, Events", "category": "Urban Luxury"},
-    {"name": "Omni Corpus Christi Hotel", "location": "Corpus Christi, TX", "state": "TX", "rating": 4.5, "price_per_night": 290, "rooms": 200, "amenities": "Waterfront, Beach, Events", "category": "Beachfront Resort"},
-    {"name": "Hilton Dallas Market Center", "location": "Dallas, TX", "state": "TX", "rating": 4.6, "price_per_night": 320, "rooms": 180, "amenities": "Downtown, Modern, Events", "category": "Urban Luxury"},
-    {"name": "Fort Worth Stockyards Hotel", "location": "Fort Worth, TX", "state": "TX", "rating": 4.4, "price_per_night": 240, "rooms": 100, "amenities": "Western Theme, Historic", "category": "Historic Inn"},
-    
-    # Pacific Northwest (5)
-    {"name": "Fairmont Olympic Hotel", "location": "Seattle, WA", "state": "WA", "rating": 4.8, "price_per_night": 520, "rooms": 280, "amenities": "Historic, Luxury, Downtown", "category": "Historic Inn"},
-    {"name": "Arctic Ocean Resort", "location": "Seattle, WA", "state": "WA", "rating": 4.5, "price_per_night": 380, "rooms": 100, "amenities": "Water View, Modern, WiFi", "category": "Boutique Hotel"},
-    {"name": "The Benson Portland", "location": "Portland, OR", "state": "OR", "rating": 4.6, "price_per_night": 380, "rooms": 150, "amenities": "Historic, Luxury, Downtown", "category": "Historic Inn"},
-    {"name": "Salishan Coastal Lodge", "location": "Lincoln City, OR", "state": "OR", "rating": 4.5, "price_per_night": 320, "rooms": 220, "amenities": "Beach, Golf, Nature", "category": "Golf Resort"},
-    {"name": "The Edgewater Seattle", "location": "Seattle, WA", "state": "WA", "rating": 4.7, "price_per_night": 480, "rooms": 230, "amenities": "Waterfront, Modern Luxury", "category": "Urban Luxury"},
-    
-    # Nevada - Las Vegas (5)
-    {"name": "Bellagio Las Vegas", "location": "Las Vegas, NV", "state": "NV", "rating": 4.7, "price_per_night": 320, "rooms": 1000, "amenities": "Strip View, Entertainment, Wedding", "category": "Urban Luxury"},
-    {"name": "Caesars Palace", "location": "Las Vegas, NV", "state": "NV", "rating": 4.6, "price_per_night": 280, "rooms": 1100, "amenities": "Iconic, Ballroom, Entertainment", "category": "Urban Luxury"},
-    {"name": "Wynn Las Vegas", "location": "Las Vegas, NV", "state": "NV", "rating": 4.8, "price_per_night": 420, "rooms": 2700, "amenities": "Luxury, Spa, Golf", "category": "Urban Luxury"},
-    {"name": "Venetian Las Vegas", "location": "Las Vegas, NV", "state": "NV", "rating": 4.7, "price_per_night": 400, "rooms": 2000, "amenities": "All-Suite, Luxury, Spa", "category": "Urban Luxury"},
-    {"name": "Mandalay Bay Resort", "location": "Las Vegas, NV", "state": "NV", "rating": 4.5, "price_per_night": 280, "rooms": 3200, "amenities": "Beach, Pool, Events", "category": "Beachfront Resort"},
-    
-    # Utah - Salt Lake City (3)
-    {"name": "The Grand America", "location": "Salt Lake City, UT", "state": "UT", "rating": 4.8, "price_per_night": 480, "rooms": 330, "amenities": "Luxury, Ballroom, Events", "category": "Urban Luxury"},
-    {"name": "Park City Marriott", "location": "Park City, UT", "state": "UT", "rating": 4.6, "price_per_night": 380, "rooms": 190, "amenities": "Mountain, Ski, Events", "category": "Mountain Resort"},
-    {"name": "Snowbird Cliff Lodge", "location": "Snowbird, UT", "state": "UT", "rating": 4.7, "price_per_night": 420, "rooms": 130, "amenities": "Mountain, Ski, Spa", "category": "Mountain Resort"},
-    
-    # Wyoming (3)
-    {"name": "Jackson Lake Lodge", "location": "Jackson, WY", "state": "WY", "rating": 4.6, "price_per_night": 380, "rooms": 130, "amenities": "Mountain View, Lake, Scenic", "category": "Mountain Resort"},
-    {"name": "Amangani Resort", "location": "Jackson, WY", "state": "WY", "rating": 4.9, "price_per_night": 680, "rooms": 30, "amenities": "Ultra-Luxury, Private, Spa", "category": "Villa Resort"},
-    {"name": "Snake River Sporting Club", "location": "Jackson, WY", "state": "WY", "rating": 4.7, "price_per_night": 500, "rooms": 70, "amenities": "Luxury, Fly-Fishing, Mountain", "category": "Luxury Resort"},
-    
-    # Montana (2)
-    {"name": "Mountain Resort Bozeman", "location": "Bozeman, MT", "state": "MT", "rating": 4.5, "price_per_night": 320, "rooms": 90, "amenities": "Mountain, Ski Access, Restaurant", "category": "Mountain Resort"},
-    {"name": "Chico Hot Springs Resort", "location": "Pray, MT", "state": "MT", "rating": 4.4, "price_per_night": 280, "rooms": 110, "amenities": "Hot Springs, Mountain, Historic", "category": "Mountain Resort"},
-    
-    # Midwest (8)
-    {"name": "The St. Paul Hotel", "location": "Saint Paul, MN", "state": "MN", "rating": 4.7, "price_per_night": 380, "rooms": 150, "amenities": "Historic, Downtown, Luxury", "category": "Historic Inn"},
-    {"name": "The Palmer House", "location": "Chicago, IL", "state": "IL", "rating": 4.8, "price_per_night": 480, "rooms": 300, "amenities": "Iconic, Luxury, Downtown", "category": "Historic Inn"},
-    {"name": "The Peninsula Chicago", "location": "Chicago, IL", "state": "IL", "rating": 4.9, "price_per_night": 580, "rooms": 200, "amenities": "Luxury, Spa, Fine Dining", "category": "Urban Luxury"},
-    {"name": "Guardian Building Hotel", "location": "Detroit, MI", "state": "MI", "rating": 4.6, "price_per_night": 340, "rooms": 100, "amenities": "Art Deco Historic, Luxury", "category": "Historic Inn"},
-    {"name": "Renaissance Cleveland Hotel", "location": "Cleveland, OH", "state": "OH", "rating": 4.5, "price_per_night": 290, "rooms": 170, "amenities": "Downtown, Modern, Events", "category": "Urban Luxury"},
-    {"name": "Hilton Milwaukee", "location": "Milwaukee, WI", "state": "WI", "rating": 4.5, "price_per_night": 300, "rooms": 190, "amenities": "Waterfront, Downtown, Events", "category": "Urban Luxury"},
-    {"name": "Hotel Fort Des Moines", "location": "Des Moines, IA", "state": "IA", "rating": 4.4, "price_per_night": 240, "rooms": 160, "amenities": "Downtown, Historic, Modern", "category": "Historic Inn"},
-    {"name": "The Ritz-Carlton St. Louis", "location": "Saint Louis, MO", "state": "MO", "rating": 4.8, "price_per_night": 520, "rooms": 200, "amenities": "Luxury, Fine Dining, Arch View", "category": "Urban Luxury"},
-    
-    # Northeast (6)
-    {"name": "Four Seasons Philadelphia", "location": "Philadelphia, PA", "state": "PA", "rating": 4.9, "price_per_night": 620, "rooms": 200, "amenities": "Luxury, Spa, Fine Dining", "category": "Urban Luxury"},
-    {"name": "The Rittenhouse Hotel", "location": "Philadelphia, PA", "state": "PA", "rating": 4.8, "price_per_night": 580, "rooms": 98, "amenities": "Luxury, Historic Square, Events", "category": "Urban Luxury"},
-    {"name": "The Harbor Court", "location": "Baltimore, MD", "state": "MD", "rating": 4.6, "price_per_night": 380, "rooms": 195, "amenities": "Waterfront, Luxury, Events", "category": "Urban Luxury"},
-    {"name": "The Hay-Adams", "location": "Washington, DC", "state": "DC", "rating": 4.8, "price_per_night": 620, "rooms": 145, "amenities": "Luxury, Historic, Iconic", "category": "Historic Inn"},
-    {"name": "The Jefferson Hotel", "location": "Richmond, VA", "state": "VA", "rating": 4.7, "price_per_night": 420, "rooms": 55, "amenities": "Historic Luxury, Downtown", "category": "Historic Inn"},
-    {"name": "The Greenbriar", "location": "White Sulphur Springs, WV", "state": "WV", "rating": 4.7, "price_per_night": 450, "rooms": 700, "amenities": "Historic, Golf, Spa", "category": "Golf Resort"},
-    
-    # South Atlantic (5)
-    {"name": "First Colony Inn", "location": "Nags Head, NC", "state": "NC", "rating": 4.4, "price_per_night": 280, "rooms": 100, "amenities": "Beach, WiFi, Restaurant", "category": "Beachfront Resort"},
-    {"name": "The Outer Banks Resort", "location": "Kill Devil Hills, NC", "state": "NC", "rating": 4.5, "price_per_night": 320, "rooms": 120, "amenities": "Beach Access, Pool, Events", "category": "Beachfront Resort"},
-    {"name": "The Caribe Resort", "location": "Gulf Shores, AL", "state": "AL", "rating": 4.5, "price_per_night": 280, "rooms": 180, "amenities": "Beach, Pool, Waterpark", "category": "Beachfront Resort"},
-    {"name": "Gulf State Park Resort", "location": "Gulf Shores, AL", "state": "AL", "rating": 4.4, "price_per_night": 240, "rooms": 140, "amenities": "Beach, Nature, Restaurant", "category": "Beachfront Resort"},
-    {"name": "Beau Rivage Resort", "location": "Biloxi, MS", "state": "MS", "rating": 4.5, "price_per_night": 250, "rooms": 370, "amenities": "Beachfront, Casino, Events", "category": "Beachfront Resort"},
 ]
 
 # ============================================================
@@ -514,17 +337,22 @@ elif st.session_state.page == "Hotel Search":
                     )
                 
                 # Fallback to sample data if database fetch fails
-                results = db_results if db_results else [
-                    h for h in SAMPLE_HOTELS 
-                    if h["price_per_night"] <= search_budget and 
-                    (search_location.lower() in h["location"].lower() or 
-                     search_location.lower() in h["state"].lower() or
-                     h["state"].lower() == search_location.lower())
-                ] if search_location else []
+                if db_results:
+                    results = db_results
+                    data_source = "database"
+                else:
+                    results = [
+                        h for h in SAMPLE_HOTELS 
+                        if h["price_per_night"] <= search_budget and 
+                        (not search_location or 
+                         search_location.lower() in h["location"].lower() or 
+                         search_location.lower() in h["state"].lower() or
+                         h["state"].lower() == search_location.lower())
+                    ]
+                    data_source = "sample"
 
                 if results:
                     st.session_state.search_results = results
-                    data_source = "database" if db_results else "sample"
                     st.success(f"✓ Found {len(results)} hotels matching your criteria! (Source: {data_source})")
                     st.write("---")
                     st.subheader("Search Results")
@@ -536,7 +364,10 @@ elif st.session_state.page == "Hotel Search":
                             st.write(f"📍 {hotel['location']} | **${hotel['price_per_night']:.2f}/night**")
                             st.write(f"⭐ Rating: {hotel['rating']}/5 | 🏨 {hotel['rooms']} rooms")
                             if hotel.get('amenities'):
-                                st.write(f"✨ {hotel['amenities'][:100]}...")
+                                amenities_display = hotel['amenities'][:100]
+                                if len(hotel['amenities']) > 100:
+                                    amenities_display += "..."
+                                st.write(f"✨ {amenities_display}")
                         with col3:
                             if st.button(f"Select →", key=f"select_{i}", use_container_width=True):
                                 st.session_state.selected_hotel = hotel
@@ -582,14 +413,20 @@ elif st.session_state.page == "Comparison":
             col1, col2 = st.columns(2)
             
             with col1:
-                prices = [h["price_per_night"] for h in st.session_state.search_results[:10]]
-                names = [h["name"][:15] for h in st.session_state.search_results[:10]]
-                st.bar_chart({"Hotel": names, "Price": prices})
+                st.subheader("Price Comparison")
+                price_df = pd.DataFrame({
+                    "Hotel": [h["name"][:20] for h in st.session_state.search_results[:10]],
+                    "Price": [h["price_per_night"] for h in st.session_state.search_results[:10]]
+                })
+                st.bar_chart(price_df.set_index("Hotel"))
 
             with col2:
-                ratings = [h["rating"] for h in st.session_state.search_results[:10]]
-                names = [h["name"][:15] for h in st.session_state.search_results[:10]]
-                st.bar_chart({"Hotel": names, "Rating": ratings})
+                st.subheader("Rating Comparison")
+                rating_df = pd.DataFrame({
+                    "Hotel": [h["name"][:20] for h in st.session_state.search_results[:10]],
+                    "Rating": [h["rating"] for h in st.session_state.search_results[:10]]
+                })
+                st.bar_chart(rating_df.set_index("Hotel"))
 
             st.write("---")
 
