@@ -13,7 +13,7 @@ import pandas as pd
 # ============================================================
 
 st.set_page_config(
-    page_title="Wedding Hotel Finder",
+    page_title="Wedding Hotel Amazing Finder",
     page_icon="💍",
     layout="wide",
     initial_sidebar_state="expanded"
